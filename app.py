@@ -99,10 +99,10 @@ with col1:
             mobilenet = load_mobilenet_model(mobilenet_path)
             dinov2_embedder, dino_clf = load_dinov2_model(dino_classifier_path)
             st.success("Modèles chargés (si pas d'erreur ci-dessus).")
-else:
-    # Provide models preloaded if cached
-    mobilenet = load_mobilenet_model(mobilenet_path)
-    dinov2_embedder, dino_clf = load_dinov2_model(dino_classifier_path)
+    else:
+        # Provide models preloaded if cached
+        mobilenet = load_mobilenet_model(mobilenet_path)
+        dinov2_embedder, dino_clf = load_dinov2_model(dino_classifier_path)
 
 with col2:
     st.header("Upload / Exemple")
