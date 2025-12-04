@@ -1,0 +1,10 @@
+streamlit>=1.26
+tensorflow>=2.12
+torch>=2.0
+torchvision
+pillow
+numpy
+pandas
+scikit-learn
+
+
