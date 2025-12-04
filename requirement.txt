@@ -1,6 +1,6 @@
-streamlit>=1.26
-tensorflow>=2.12
-torch>=2.0
+streamlit
+tensorflow
+torch
 torchvision
 pillow
 numpy
