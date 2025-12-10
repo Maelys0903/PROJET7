@@ -108,7 +108,7 @@ def predict_with_model(model, img, target_size=(224, 224)):
 if uploaded:
     st.subheader("Image chargée")
     img = Image.open(uploaded).convert("RGB")
-    st.image(img, use_column_width=True)
+    st.image(img, width=400)
 
     st.subheader("Prédictions")
 
