@@ -133,7 +133,7 @@ for cls in first_5:
         example_images.append((cls, imgs[0]))
 
 if example_images:
-    cols = st.columns(len(example_images))
+    cols = st.columns(min(len(example_images), 5))
     for idx, (cls, img_path) in enumerate(example_images):
         with cols[idx]:
             img = Image.open(img_path).convert("RGB")
