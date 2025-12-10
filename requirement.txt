@@ -1,12 +1,11 @@
 streamlit>=1.28
 
-# TensorFlow CPU uniquement (plus léger)
 tensorflow-cpu>=2.13.0
 
-# PyTorch CPU uniquement (obligatoire sur Render)
-torch==2.2.0+cpu
-torchvision==0.17.0+cpu
-torchaudio==2.2.0+cpu
+# PyTorch CPU compatible Python 3.12 (Render)
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+torchaudio==2.5.1+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 pillow>=10.0.0
