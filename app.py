@@ -223,5 +223,3 @@ if uploaded:
 
 st.markdown("---")
 st.caption("Notes: DINOv2 embedder loaded via torch.hub may be large. For production, prefer precomputing embeddings or hosting the embedder on an inference service.")
-
-
