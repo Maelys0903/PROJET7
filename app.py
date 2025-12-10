@@ -139,7 +139,7 @@ if example_images:
     cols = st.columns(5)
     for idx, (cls, img_path) in enumerate(example_images):
         with cols[idx]:
-            st.image(img_path, caption=cls, use_column_width=True)
+            st.image(img_path, caption=cls, width=200)
             if st.button(f"Prédire ({cls})", key=f"auto_{idx}"):
                 img = Image.open(img_path).convert("RGB")
                 st.write(f"### Prédictions pour **{cls}** :")
