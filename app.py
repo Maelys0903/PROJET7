@@ -21,7 +21,6 @@ st.write("Interface de prédiction pour MobileNetV2 et DINOv2.")
 ############################################
 # CHARGEMENT DES MODÈLES
 ############################################
-
 col1, col2 = st.columns(2)
 
 with col1:
@@ -65,7 +64,6 @@ if not classes:
 ############################################
 # UPLOAD UTILISATEUR ET EXEMPLES
 ############################################
-
 with col2:
     st.header("Upload / Exemple")
     uploaded = st.file_uploader("Upload une image", type=["jpg", "jpeg", "png"])
@@ -111,7 +109,6 @@ if uploaded:
     st.image(img, width=400)
 
     st.subheader("Prédictions")
-
     if mobilenet:
         class_name, prob = predict_with_model(mobilenet, img)
         st.write(f"### MobileNetV2 : {class_name}, Probabilité {prob:.2f}")
@@ -136,17 +133,17 @@ for cls in first_5:
         example_images.append((cls, imgs[0]))
 
 if example_images:
-    cols = st.columns(5)
+    cols = st.columns(len(example_images))
     for idx, (cls, img_path) in enumerate(example_images):
         with cols[idx]:
-            st.image(img_path, caption=cls, width=200)
-            if st.button(f"Prédire ({cls})", key=f"auto_{idx}"):
-                img = Image.open(img_path).convert("RGB")
-                st.write(f"### Prédictions pour **{cls}** :")
-                if mobilenet:
-                    class_name, prob = predict_with_model(mobilenet, img)
-                    st.write(f"MobileNetV2 : {class_name}, Probabilité {prob:.2f}")
-                if dino_clf:
-                    class_name, prob = predict_with_model(dino_clf, img)
-                    st.write(f"DINOv2 : {class_name}, Probabilité {prob:.2f}")
+            img = Image.open(img_path).convert("RGB")
+            st.image(img, caption=cls, width=200)
+
+            st.write(f"### Prédictions pour **{cls}** :")
+            if mobilenet:
+                class_name, prob = predict_with_model(mobilenet, img)
+                st.write(f"MobileNetV2 : {class_name}, Probabilité {prob:.2f}")
+            if dino_clf:
+                class_name, prob = predict_with_model(dino_clf, img)
+                st.write(f"DINOv2 : {class_name}, Probabilité {prob:.2f}")
 
