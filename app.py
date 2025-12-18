@@ -19,52 +19,47 @@ st.title("Stanford Dogs – MobileNetV2 & DINOv2")
 st.write("Interface de prédiction pour MobileNetV2 et DINOv2.")
 
 ############################################
-# CHARGEMENT DES MODÈLES
+# CHARGEMENT DES MODÈLES (AUTO)
 ############################################
-col1, col2 = st.columns(2)
+@st.cache_resource
+def load_models():
+    mobilenet = load_model("best_mobilenetv2_finetuned.keras")
+    dino = load_model("best_dinov2_classifier.keras")
+    return mobilenet, dino
 
-with col1:
-    st.header("Chargement des modèles")
-
-    mobilenet_path = st.text_input(
-        "Path MobileNetV2 (Keras model)",
-        "best_mobilenetv2_finetuned.keras"
-    )
-
-    dino_classifier_path = st.text_input(
-        "Path DINOv2 classifier (Keras)",
-        "best_dinov2_classifier.keras"
-    )
-
-    load_button = st.button("Charger les modèles")
-
-    mobilenet = None
-    dino_clf = None
-
-    if load_button:
-        with st.spinner("Chargement des modèles..."):
-            try:
-                mobilenet = load_model(mobilenet_path)
-                dino_clf = load_model(dino_classifier_path)
-                st.success("Modèles chargés avec succès !")
-            except Exception as e:
-                st.error(f"Erreur lors du chargement : {e}")
+try:
+    mobilenet, dino_clf = load_models()
+    st.success("✅ Modèles chargés avec succès")
+except Exception as e:
+    st.error("❌ Impossible de charger les modèles")
+    st.exception(e)
+    mobilenet, dino_clf = None, None
 
 ############################################
 # CHARGEMENT DES CLASSES
 ############################################
 dataset_root = os.path.join("images", "Images")
-classes = sorted([
-    d for d in os.listdir(dataset_root)
-    if os.path.isdir(os.path.join(dataset_root, d))
-])
+
+if os.path.exists(dataset_root):
+    classes = sorted([
+        d for d in os.listdir(dataset_root)
+        if os.path.isdir(os.path.join(dataset_root, d))
+    ])
+else:
+    classes = []
+
 if not classes:
-    st.error("Aucune classe trouvée dans le dossier images/Images.")
+    st.warning("⚠️ Aucune classe trouvée dans images/Images")
 
 ############################################
-# UPLOAD UTILISATEUR ET EXEMPLES
+# LAYOUT
 ############################################
-with col2:
+col1, col2 = st.columns(2)
+
+############################################
+# UPLOAD UTILISATEUR
+############################################
+with col1:
     st.header("Upload / Exemple")
     uploaded = st.file_uploader("Upload une image", type=["jpg", "jpeg", "png"])
 
@@ -88,62 +83,59 @@ with col2:
             uploaded = sample_choice
 
 ############################################
-# FONCTION DE PREDICTION
+# FONCTION DE PRÉDICTION
 ############################################
 def predict_with_model(model, img, target_size=(224, 224)):
     img_resized = img.resize(target_size)
     x = image.img_to_array(img_resized)
     x = np.expand_dims(x, axis=0)
-    x = x / 255.0  # Normalisation
-    preds = model.predict(x)
-    class_idx = np.argmax(preds, axis=1)[0]
+    x = x / 255.0
+    preds = model.predict(x, verbose=0)
+    class_idx = int(np.argmax(preds, axis=1)[0])
     class_name = classes[class_idx] if class_idx < len(classes) else f"Classe {class_idx}"
-    return class_name, preds[0][class_idx]
+    return class_name, float(preds[0][class_idx])
 
 ############################################
-# PREDICTION SUR L’IMAGE UPLOADÉE
+# PRÉDICTION IMAGE UTILISATEUR
 ############################################
-if uploaded:
-    st.subheader("Image chargée")
-    img = Image.open(uploaded).convert("RGB")
-    st.image(img, width=400)
+with col2:
+    if uploaded and mobilenet and dino_clf:
+        img = Image.open(uploaded).convert("RGB")
+        st.subheader("Image analysée")
+        st.image(img, width=350)
 
-    st.subheader("Prédictions")
-    if mobilenet:
+        st.subheader("Prédictions")
         class_name, prob = predict_with_model(mobilenet, img)
-        st.write(f"### MobileNetV2 : {class_name}, Probabilité {prob:.2f}")
+        st.write(f"### MobileNetV2 : {class_name} ({prob:.2f})")
 
-    if dino_clf:
         class_name, prob = predict_with_model(dino_clf, img)
-        st.write(f"### DINOv2 : {class_name}, Probabilité {prob:.2f}")
+        st.write(f"### DINOv2 : {class_name} ({prob:.2f})")
 
 ############################################
-# EXEMPLES AUTOMATIQUES : 5 premières classes
+# EXEMPLES AUTOMATIQUES
 ############################################
 st.header("Exemples automatiques (5 premières classes)")
 
-first_5 = classes[:5]
-example_images = []
+if classes and mobilenet and dino_clf:
+    first_5 = classes[:5]
+    example_images = []
 
-for cls in first_5:
-    cls_folder = os.path.join(dataset_root, cls)
-    imgs = sorted(glob.glob(os.path.join(cls_folder, "*")))
-    imgs = [f for f in imgs if f.lower().endswith((".jpg", ".jpeg", ".png"))]
-    if imgs:
-        example_images.append((cls, imgs[0]))
+    for cls in first_5:
+        cls_folder = os.path.join(dataset_root, cls)
+        imgs = glob.glob(os.path.join(cls_folder, "*"))
+        imgs = [f for f in imgs if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+        if imgs:
+            example_images.append((cls, imgs[0]))
 
-if example_images:
-    cols = st.columns(min(len(example_images), 5))
-    for idx, (cls, img_path) in enumerate(example_images):
-        with cols[idx]:
-            img = Image.open(img_path).convert("RGB")
-            st.image(img, caption=cls, width=200)
+    if example_images:
+        cols = st.columns(len(example_images))
+        for idx, (cls, img_path) in enumerate(example_images):
+            with cols[idx]:
+                img = Image.open(img_path).convert("RGB")
+                st.image(img, caption=cls, width=200)
 
-            st.write(f"### Prédictions pour **{cls}** :")
-            if mobilenet:
-                class_name, prob = predict_with_model(mobilenet, img)
-                st.write(f"MobileNetV2 : {class_name}, Probabilité {prob:.2f}")
-            if dino_clf:
-                class_name, prob = predict_with_model(dino_clf, img)
-                st.write(f"DINOv2 : {class_name}, Probabilité {prob:.2f}")
+                cname, prob = predict_with_model(mobilenet, img)
+                st.caption(f"MobileNetV2 : {cname} ({prob:.2f})")
 
+                cname, prob = predict_with_model(dino_clf, img)
+                st.caption(f"DINOv2 : {cname} ({prob:.2f})")
