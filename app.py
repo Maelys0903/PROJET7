@@ -85,14 +85,20 @@ with col1:
 ############################################
 # FONCTION DE PRÉDICTION
 ############################################
-def predict_with_model(model, img, target_size=(224, 224)):
+def predict_with_model(model, img):
+    # Taille attendue par le modèle
+    input_shape = model.input_shape
+    target_size = (input_shape[1], input_shape[2])
+
     img_resized = img.resize(target_size)
     x = image.img_to_array(img_resized)
     x = np.expand_dims(x, axis=0)
     x = x / 255.0
+
     preds = model.predict(x, verbose=0)
     class_idx = int(np.argmax(preds, axis=1)[0])
     class_name = classes[class_idx] if class_idx < len(classes) else f"Classe {class_idx}"
+
     return class_name, float(preds[0][class_idx])
 
 ############################################
