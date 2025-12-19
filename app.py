@@ -88,6 +88,7 @@ with col1:
 def predict_with_model(model, img):
     # Taille attendue par le modèle
     input_shape = model.input_shape
+    print(input_shape)
     target_size = (input_shape[1], input_shape[2])
 
     img_resized = img.resize(target_size)
