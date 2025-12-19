@@ -145,3 +145,4 @@ if classes and mobilenet and dino_clf:
 
                 cname, prob = predict_with_model(dino_clf, img)
                 st.caption(f"DINOv2 : {cname} ({prob:.2f})")
+
