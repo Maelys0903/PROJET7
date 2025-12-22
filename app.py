@@ -27,19 +27,25 @@ st.write("Interface de prédiction pour MobileNetV2 et DINOv2.")
 ############################################
 # CHARGEMENT DES MODÈLES LÉGERS (BOOT)
 ############################################
-@st.cache_resource
-def load_light_models():
-    mobilenet = load_model("best_mobilenetv2_finetuned.keras")
-    dino_classifier = load_model("best_dinov2_classifier.keras")
-    return mobilenet, dino_classifier
+if "mobilenet" not in st.session_state:
+    with st.spinner("Chargement des modèles Keras..."):
+        try:
+            st.session_state.mobilenet = load_model(
+                "best_mobilenetv2_finetuned.keras",
+                compile=False
+            )
+            st.session_state.dino_clf = load_model(
+                "best_dinov2_classifier.keras",
+                compile=False
+            )
+            st.success("✅ Modèles Keras chargés")
+        except Exception as e:
+            st.error("❌ Erreur chargement modèles")
+            st.exception(e)
+            st.stop()
 
-try:
-    mobilenet, dino_clf = load_light_models()
-    st.success("✅ Modèles Keras chargés")
-except Exception as e:
-    st.error("❌ Impossible de charger les modèles")
-    st.exception(e)
-    st.stop()
+mobilenet = st.session_state.mobilenet
+dino_clf = st.session_state.dino_clf
 
 ############################################
 # CHARGEMENT DINOv2 BACKBONE (À LA DEMANDE)
