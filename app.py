@@ -4,7 +4,7 @@ import numpy as np
 import os
 import glob
 
-# TensorFlow (MobileNet + classifier DINO)
+# TensorFlow
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 
@@ -25,25 +25,34 @@ st.title("Stanford Dogs – MobileNetV2 & DINOv2")
 st.write("Interface de prédiction pour MobileNetV2 et DINOv2.")
 
 ############################################
-# CHARGEMENT DES MODÈLES
+# CHARGEMENT DES MODÈLES LÉGERS (BOOT)
 ############################################
 @st.cache_resource
-def load_models():
-    # MobileNetV2
+def load_light_models():
     mobilenet = load_model("best_mobilenetv2_finetuned.keras")
-
-    # Classifier DINOv2 (Keras)
     dino_classifier = load_model("best_dinov2_classifier.keras")
+    return mobilenet, dino_classifier
 
-    # Backbone DINOv2 (PyTorch)
-    dino_backbone = torch.hub.load(
+try:
+    mobilenet, dino_clf = load_light_models()
+    st.success("✅ Modèles Keras chargés")
+except Exception as e:
+    st.error("❌ Impossible de charger les modèles")
+    st.exception(e)
+    st.stop()
+
+############################################
+# CHARGEMENT DINOv2 BACKBONE (À LA DEMANDE)
+############################################
+@st.cache_resource
+def load_dino_backbone():
+    model = torch.hub.load(
         "facebookresearch/dinov2",
         "dinov2_vitb14"
     )
-    dino_backbone.eval()
+    model.eval()
 
-    # Transform EXACT du notebook
-    dino_transform = T.Compose([
+    transform = T.Compose([
         T.Resize(256),
         T.CenterCrop(224),
         T.ToTensor(),
@@ -53,16 +62,7 @@ def load_models():
         ),
     ])
 
-    return mobilenet, dino_classifier, dino_backbone, dino_transform
-
-
-try:
-    mobilenet, dino_clf, dino_backbone, dino_transform = load_models()
-    st.success("✅ Modèles chargés avec succès")
-except Exception as e:
-    st.error("❌ Impossible de charger les modèles")
-    st.exception(e)
-    st.stop()
+    return model, transform
 
 ############################################
 # CHARGEMENT DES CLASSES
@@ -93,8 +93,8 @@ with col1:
     uploaded = st.file_uploader("Upload une image", type=["jpg", "jpeg", "png"])
 
     st.write("Ou tester une image du dataset :")
-    sample_files = []
 
+    sample_files = []
     if os.path.exists(dataset_root):
         sample_files = [
             os.path.join(dataset_root, d, f)
@@ -105,32 +105,31 @@ with col1:
         ]
 
     if sample_files:
-        sample_choice = st.selectbox(
-            "Images du dataset :", ["--"] + sample_files
-        )
+        sample_choice = st.selectbox("Images du dataset :", ["--"] + sample_files)
         if sample_choice != "--" and uploaded is None:
             uploaded = sample_choice
 
 ############################################
-# PREDICTION MOBILENET
+# PRÉDICTION MOBILENET
 ############################################
 def predict_mobilenet(model, img):
-    input_shape = model.input_shape
-    target_size = (input_shape[1], input_shape[2])
-
+    target_size = (model.input_shape[1], model.input_shape[2])
     img_resized = img.resize(target_size)
+
     x = image.img_to_array(img_resized)
-    x = np.expand_dims(x, axis=0)
-    x = x / 255.0
+    x = np.expand_dims(x, axis=0) / 255.0
 
     preds = model.predict(x, verbose=0)
     idx = int(np.argmax(preds, axis=1)[0])
     return classes[idx], float(preds[0][idx])
 
 ############################################
-# PREDICTION DINOv2 (CORRECTE)
+# PRÉDICTION DINOv2 (PIPELINE CORRECT)
 ############################################
-def predict_dinov2(img, backbone, transform, classifier):
+def predict_dinov2(img, classifier):
+    with st.spinner("Chargement DINOv2 (première utilisation)..."):
+        backbone, transform = load_dino_backbone()
+
     img_t = transform(img).unsqueeze(0)
 
     with torch.no_grad():
@@ -154,7 +153,7 @@ with col2:
         cname, prob = predict_mobilenet(mobilenet, img)
         st.write(f"### MobileNetV2 : {cname} ({prob:.2f})")
 
-        cname, prob = predict_dinov2(img, dino_backbone, dino_transform, dino_clf)
+        cname, prob = predict_dinov2(img, dino_clf)
         st.write(f"### DINOv2 : {cname} ({prob:.2f})")
 
 ############################################
@@ -183,5 +182,5 @@ if classes:
                 cname, prob = predict_mobilenet(mobilenet, img)
                 st.caption(f"MobileNetV2 : {cname} ({prob:.2f})")
 
-                cname, prob = predict_dinov2(img, dino_backbone, dino_transform, dino_clf)
+                cname, prob = predict_dinov2(img, dino_clf)
                 st.caption(f"DINOv2 : {cname} ({prob:.2f})")
