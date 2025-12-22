@@ -29,9 +29,9 @@ def load_models():
 
 try:
     mobilenet, dino_clf = load_models()
-    st.success("✅ Modèles chargés avec succès")
+    st.success("Modèles chargés avec succès")
 except Exception as e:
-    st.error("❌ Impossible de charger les modèles")
+    st.error("Impossible de charger les modèles")
     st.exception(e)
     mobilenet, dino_clf = None, None
 
@@ -49,7 +49,7 @@ else:
     classes = []
 
 if not classes:
-    st.warning("⚠️ Aucune classe trouvée dans images/Images")
+    st.warning("Aucune classe trouvée dans images/Images")
 
 ############################################
 # LAYOUT
@@ -85,11 +85,14 @@ with col1:
 ############################################
 # FONCTION DE PRÉDICTION
 ############################################
-def predict_with_model(model, img):
-    # Taille attendue par le modèle
-    input_shape = model.input_shape
-    print(input_shape)
-    target_size = (input_shape[1], input_shape[2])
+def predict_with_model(model, img, model_name="mobilenet"):
+    if model_name == "dinov2":
+        # DINOv2 : taille fixe utilisée à l'entraînement
+        target_size = (224, 224)
+    else:
+        # CNN classiques (MobileNet, ResNet, etc.)
+        input_shape = model.input_shape
+        target_size = (input_shape[1], input_shape[2])
 
     img_resized = img.resize(target_size)
     x = image.img_to_array(img_resized)
@@ -141,9 +144,8 @@ if classes and mobilenet and dino_clf:
                 img = Image.open(img_path).convert("RGB")
                 st.image(img, caption=cls, width=200)
 
-                cname, prob = predict_with_model(mobilenet, img)
+                cname, prob = predict_with_model(mobilenet, img, model_name="mobilenet")
                 st.caption(f"MobileNetV2 : {cname} ({prob:.2f})")
 
-                cname, prob = predict_with_model(dino_clf, img)
+                cname, prob = predict_with_model(dino_clf, img, model_name="dinov2")
                 st.caption(f"DINOv2 : {cname} ({prob:.2f})")
-
