@@ -8,7 +8,7 @@ import glob
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 
-# PyTorch (DINOv2 backbone)
+# PyTorch (DINOv2)
 import torch
 import torchvision.transforms as T
 
@@ -22,10 +22,10 @@ st.set_page_config(
 )
 
 st.title("Stanford Dogs – MobileNetV2 & DINOv2")
-st.write("Interface de prédiction pour MobileNetV2 et DINOv2.")
+st.write("Interface de prédiction pour MobileNetV2 et DINOv2")
 
 ############################################
-# CHARGEMENT DES MODÈLES LÉGERS (BOOT)
+# CHARGEMENT DES MODÈLES KERAS (BOOT)
 ############################################
 if "mobilenet" not in st.session_state:
     with st.spinner("Chargement des modèles Keras..."):
@@ -38,9 +38,8 @@ if "mobilenet" not in st.session_state:
                 "best_dinov2_classifier.keras",
                 compile=False
             )
-            st.success("✅ Modèles Keras chargés")
         except Exception as e:
-            st.error("❌ Erreur chargement modèles")
+            st.error("❌ Erreur lors du chargement des modèles")
             st.exception(e)
             st.stop()
 
@@ -76,10 +75,10 @@ def load_dino_backbone():
 dataset_root = os.path.join("images", "Images")
 
 if os.path.exists(dataset_root):
-    classes = sorted([
+    classes = sorted(
         d for d in os.listdir(dataset_root)
         if os.path.isdir(os.path.join(dataset_root, d))
-    ])
+    )
 else:
     classes = []
 
@@ -96,7 +95,10 @@ col1, col2 = st.columns(2)
 ############################################
 with col1:
     st.header("Upload / Exemple")
-    uploaded = st.file_uploader("Upload une image", type=["jpg", "jpeg", "png"])
+    uploaded = st.file_uploader(
+        "Upload une image",
+        type=["jpg", "jpeg", "png"]
+    )
 
     st.write("Ou tester une image du dataset :")
 
@@ -111,7 +113,10 @@ with col1:
         ]
 
     if sample_files:
-        sample_choice = st.selectbox("Images du dataset :", ["--"] + sample_files)
+        sample_choice = st.selectbox(
+            "Images du dataset :",
+            ["--"] + sample_files
+        )
         if sample_choice != "--" and uploaded is None:
             uploaded = sample_choice
 
@@ -127,14 +132,14 @@ def predict_mobilenet(model, img):
 
     preds = model.predict(x, verbose=0)
     idx = int(np.argmax(preds, axis=1)[0])
+
     return classes[idx], float(preds[0][idx])
 
 ############################################
-# PRÉDICTION DINOv2 (PIPELINE CORRECT)
+# PRÉDICTION DINOv2
 ############################################
 def predict_dinov2(img, classifier):
-    with st.spinner("Chargement DINOv2 (première utilisation)..."):
-        backbone, transform = load_dino_backbone()
+    backbone, transform = load_dino_backbone()
 
     img_t = transform(img).unsqueeze(0)
 
@@ -143,14 +148,16 @@ def predict_dinov2(img, classifier):
 
     preds = classifier.predict(embedding, verbose=0)
     idx = int(np.argmax(preds, axis=1)[0])
+
     return classes[idx], float(preds[0][idx])
 
 ############################################
-# IMAGE UTILISATEUR
+# IMAGE UTILISATEUR & PRÉDICTIONS
 ############################################
 with col2:
     if uploaded:
         img = Image.open(uploaded).convert("RGB")
+
         st.subheader("Image analysée")
         st.image(img, width=350)
 
@@ -159,8 +166,9 @@ with col2:
         cname, prob = predict_mobilenet(mobilenet, img)
         st.write(f"### MobileNetV2 : {cname} ({prob:.2f})")
 
-        cname, prob = predict_dinov2(img, dino_clf)
-        st.write(f"### DINOv2 : {cname} ({prob:.2f})")
+        with st.spinner("Analyse DINOv2 (première utilisation plus longue)..."):
+            cname, prob = predict_dinov2(img, dino_clf)
+            st.write(f"### DINOv2 : {cname} ({prob:.2f})")
 
 ############################################
 # EXEMPLES AUTOMATIQUES
@@ -173,8 +181,10 @@ if classes:
 
     for cls in first_5:
         cls_folder = os.path.join(dataset_root, cls)
-        imgs = glob.glob(os.path.join(cls_folder, "*"))
-        imgs = [f for f in imgs if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+        imgs = [
+            f for f in glob.glob(os.path.join(cls_folder, "*"))
+            if f.lower().endswith((".jpg", ".jpeg", ".png"))
+        ]
         if imgs:
             example_images.append((cls, imgs[0]))
 
