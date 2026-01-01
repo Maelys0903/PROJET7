@@ -1,150 +1,147 @@
+# ============================================================
+# Dashboard Streamlit – Stanford Dogs
+# Comparaison MobileNetV2 vs DINOv2 (prédictions pré-calculées)
+# ============================================================
+
 import streamlit as st
+import pandas as pd
 from PIL import Image
-import numpy as np
 import os
-import glob
+import random
 
-# TensorFlow
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+# ============================================================
+# CONFIGURATION STREAMLIT
+# ============================================================
 
-############################################
-# CONFIG STREAMLIT
-############################################
 st.set_page_config(
-    page_title="Stanford Dogs Classifier",
+    page_title="Stanford Dogs – Dashboard",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("Stanford Dogs – MobileNetV2")
-st.write("Interface de prédiction basée sur MobileNetV2")
+st.title("Stanford Dogs – Dashboard de prédictions")
+st.write(
+    """
+    Ce dashboard compare les prédictions de deux modèles :
+    **MobileNetV2** et **DINOv2 (ViT-B/14)**  
+    Les prédictions sont **pré-calculées** afin de garantir
+    un affichage rapide et compatible avec Render (free).
+    """
+)
 
-############################################
-# CHARGEMENT DU MODÈLE (BOOT UNIQUE)
-############################################
-if "mobilenet" not in st.session_state:
-    with st.spinner("Chargement du modèle MobileNetV2..."):
-        try:
-            st.session_state.mobilenet = load_model(
-                "best_mobilenetv2_finetuned.keras",
-                compile=False
-            )
-            st.success("✅ Modèle MobileNetV2 chargé")
-        except Exception as e:
-            st.error("❌ Impossible de charger le modèle")
-            st.exception(e)
-            st.stop()
+# ============================================================
+# CHARGEMENT DES DONNÉES (CSV)
+# ============================================================
 
-mobilenet = st.session_state.mobilenet
+@st.cache_data
+def load_predictions():
+    """
+    Charge le fichier CSV contenant toutes les prédictions.
+    Le cache Streamlit évite de recharger le fichier à chaque interaction.
+    """
+    return pd.read_csv("predictions_mobilenet_dinov2.csv")
 
-############################################
-# CHARGEMENT DES CLASSES
-############################################
-dataset_root = os.path.join("images", "Images")
+df = load_predictions()
 
-if os.path.exists(dataset_root):
-    classes = sorted(
-        d for d in os.listdir(dataset_root)
-        if os.path.isdir(os.path.join(dataset_root, d))
-    )
-else:
-    classes = []
+# ============================================================
+# SIDEBAR – FILTRES UTILISATEUR
+# ============================================================
 
-if not classes:
-    st.warning("⚠️ Aucune classe trouvée dans images/Images")
+st.sidebar.title("Filtres")
 
-############################################
-# LAYOUT
-############################################
-col1, col2 = st.columns(2)
+# Choix du modèle à mettre en avant
+model_choice = st.sidebar.selectbox(
+    "Modèle affiché",
+    ["mobilenet", "dinov2"]
+)
 
-############################################
-# UPLOAD UTILISATEUR
-############################################
+# Filtre par classe réelle
+class_choice = st.sidebar.selectbox(
+    "Classe réelle",
+    ["Toutes"] + sorted(df["true_class"].unique())
+)
+
+# ============================================================
+# APPLICATION DES FILTRES
+# ============================================================
+
+df_view = df.copy()
+
+if class_choice != "Toutes":
+    df_view = df_view[df_view["true_class"] == class_choice]
+
+st.write(f"**{len(df_view)} images** sélectionnées")
+
+# ============================================================
+# SÉLECTION ALÉATOIRE D'UNE IMAGE
+# ============================================================
+
+if len(df_view) == 0:
+    st.warning("Aucune image disponible avec ces filtres.")
+    st.stop()
+
+row = df_view.sample(1).iloc[0]
+
+image_path = row["image_path"]
+
+# ============================================================
+# AFFICHAGE IMAGE
+# ============================================================
+
+col1, col2 = st.columns([1, 1])
+
 with col1:
-    st.header("Upload / Exemple")
+    st.subheader("Image analysée")
 
-    uploaded = st.file_uploader(
-        "Upload une image",
-        type=["jpg", "jpeg", "png"]
+    if os.path.exists(image_path):
+        img = Image.open(image_path).convert("RGB")
+        st.image(img, width=350)
+        st.caption(f"Classe réelle : {row['true_class']}")
+    else:
+        st.error("Image introuvable sur le serveur")
+
+# ============================================================
+# AFFICHAGE DES PRÉDICTIONS
+# ============================================================
+
+with col2:
+    st.subheader("Prédictions des modèles")
+
+    st.markdown(
+        f"""
+        ### MobileNetV2  
+        **Classe prédite :** {row['mobilenet_pred']}  
+        **Probabilité :** {row['mobilenet_proba']:.2f}
+
+        ### DINOv2 (ViT-B/14)  
+        **Classe prédite :** {row['dinov2_pred']}  
+        **Probabilité :** {row['dinov2_proba']:.2f}
+        """
     )
 
-    st.write("Ou tester une image du dataset :")
+# ============================================================
+# COMPARAISON VISUELLE (BON / MAUVAIS)
+# ============================================================
 
-    sample_files = []
-    if os.path.exists(dataset_root):
-        sample_files = [
-            os.path.join(dataset_root, d, f)
-            for d in os.listdir(dataset_root)
-            if os.path.isdir(os.path.join(dataset_root, d))
-            for f in os.listdir(os.path.join(dataset_root, d))
-            if f.lower().endswith((".jpg", ".jpeg", ".png"))
-        ]
+st.divider()
+st.subheader("Analyse rapide")
 
-    if sample_files:
-        sample_choice = st.selectbox(
-            "Images du dataset :",
-            ["--"] + sample_files
-        )
-        if sample_choice != "--" and uploaded is None:
-            uploaded = sample_choice
+mn_correct = row["mobilenet_pred"] == row["true_class"]
+dn_correct = row["dinov2_pred"] == row["true_class"]
 
-############################################
-# PRÉDICTION MOBILENET
-############################################
-def predict_mobilenet(model, img):
-    target_size = (model.input_shape[1], model.input_shape[2])
-    img_resized = img.resize(target_size)
+st.write(
+    f"""
+    - MobileNetV2 : {'Correct' if mn_correct else '❌ Incorrect'}
+    - DINOv2 : {'Correct' if dn_correct else '❌ Incorrect'}
+    """
+)
 
-    x = image.img_to_array(img_resized)
-    x = np.expand_dims(x, axis=0) / 255.0
+# ============================================================
+# PIED DE PAGE
+# ============================================================
 
-    preds = model.predict(x, verbose=0)
-    idx = int(np.argmax(preds, axis=1)[0])
-
-    return classes[idx], float(preds[0][idx])
-
-############################################
-# IMAGE UTILISATEUR & PRÉDICTION
-############################################
-with col2:
-    if uploaded:
-        img = Image.open(uploaded).convert("RGB")
-
-        st.subheader("Image analysée")
-        st.image(img, width=350)
-
-        st.subheader("Prédiction")
-
-        cname, prob = predict_mobilenet(mobilenet, img)
-        st.write(f"### 🐶 {cname} ({prob:.2f})")
-
-############################################
-# EXEMPLES AUTOMATIQUES
-############################################
-st.header("Exemples automatiques (5 premières classes)")
-
-if classes:
-    first_5 = classes[:5]
-    example_images = []
-
-    for cls in first_5:
-        cls_folder = os.path.join(dataset_root, cls)
-        imgs = [
-            f for f in glob.glob(os.path.join(cls_folder, "*"))
-            if f.lower().endswith((".jpg", ".jpeg", ".png"))
-        ]
-        if imgs:
-            example_images.append((cls, imgs[0]))
-
-    if example_images:
-        cols = st.columns(len(example_images))
-        for i, (cls, path) in enumerate(example_images):
-            with cols[i]:
-                img = Image.open(path).convert("RGB")
-                st.image(img, caption=cls, width=200)
-
-                cname, prob = predict_mobilenet(mobilenet, img)
-                st.caption(f"{cname} ({prob:.2f})")
-
+st.divider()
+st.caption(
+    "Projet Computer Vision – Stanford Dogs | "
+    "Dashboard Streamlit – Prédictions pré-calculées"
+)
