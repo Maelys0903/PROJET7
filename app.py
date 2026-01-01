@@ -7,7 +7,6 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 import os
-import random
 
 # ============================================================
 # CONFIGURATION STREAMLIT
@@ -19,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("Stanford Dogs – Dashboard de prédictions")
+st.title("🐶 Stanford Dogs – Dashboard de prédictions")
 st.write(
     """
     Ce dashboard compare les prédictions de deux modèles :
@@ -35,10 +34,7 @@ st.write(
 
 @st.cache_data
 def load_predictions():
-    """
-    Charge le fichier CSV contenant toutes les prédictions.
-    Le cache Streamlit évite de recharger le fichier à chaque interaction.
-    """
+    """Charge le fichier CSV contenant toutes les prédictions."""
     return pd.read_csv("predictions_mobilenet_dinov2.csv")
 
 df = load_predictions()
@@ -47,15 +43,8 @@ df = load_predictions()
 # SIDEBAR – FILTRES UTILISATEUR
 # ============================================================
 
-st.sidebar.title("Filtres")
+st.sidebar.title("🎛️ Filtres")
 
-# Choix du modèle à mettre en avant
-model_choice = st.sidebar.selectbox(
-    "Modèle affiché",
-    ["mobilenet", "dinov2"]
-)
-
-# Filtre par classe réelle
 class_choice = st.sidebar.selectbox(
     "Classe réelle",
     ["Toutes"] + sorted(df["true_class"].unique())
@@ -70,69 +59,75 @@ df_view = df.copy()
 if class_choice != "Toutes":
     df_view = df_view[df_view["true_class"] == class_choice]
 
-st.write(f"**{len(df_view)} images** sélectionnées")
-
-# ============================================================
-# SÉLECTION ALÉATOIRE D'UNE IMAGE
-# ============================================================
+st.write(f"📊 **{len(df_view)} images** sélectionnées")
 
 if len(df_view) == 0:
     st.warning("Aucune image disponible avec ces filtres.")
     st.stop()
 
+# ============================================================
+# SÉLECTION D'UNE IMAGE
+# ============================================================
+
 row = df_view.sample(1).iloc[0]
 
-image_path = row["image_path"]
+# ============================================================
+# CORRECTION CHEMIN IMAGE (IMPORTANT POUR RENDER)
+# ============================================================
+
+BASE_DIR = os.path.dirname(__file__)
+image_path = os.path.join(BASE_DIR, row["image_path"])
 
 # ============================================================
 # AFFICHAGE IMAGE
 # ============================================================
 
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Image analysée")
+    st.subheader("📷 Image analysée")
 
     if os.path.exists(image_path):
         img = Image.open(image_path).convert("RGB")
         st.image(img, width=350)
         st.caption(f"Classe réelle : {row['true_class']}")
     else:
-        st.error("Image introuvable sur le serveur")
+        st.error("❌ Image introuvable")
+        st.write("Chemin cherché :", image_path)
 
 # ============================================================
 # AFFICHAGE DES PRÉDICTIONS
 # ============================================================
 
 with col2:
-    st.subheader("Prédictions des modèles")
+    st.subheader("🧠 Prédictions")
 
     st.markdown(
         f"""
-        ### MobileNetV2  
+        ### 🔵 MobileNetV2  
         **Classe prédite :** {row['mobilenet_pred']}  
         **Probabilité :** {row['mobilenet_proba']:.2f}
 
-        ### DINOv2 (ViT-B/14)  
+        ### 🟢 DINOv2 (ViT-B/14)  
         **Classe prédite :** {row['dinov2_pred']}  
         **Probabilité :** {row['dinov2_proba']:.2f}
         """
     )
 
 # ============================================================
-# COMPARAISON VISUELLE (BON / MAUVAIS)
+# ANALYSE RAPIDE
 # ============================================================
 
 st.divider()
-st.subheader("Analyse rapide")
+st.subheader("✅ Analyse rapide")
 
 mn_correct = row["mobilenet_pred"] == row["true_class"]
 dn_correct = row["dinov2_pred"] == row["true_class"]
 
 st.write(
     f"""
-    - MobileNetV2 : {'Correct' if mn_correct else '❌ Incorrect'}
-    - DINOv2 : {'Correct' if dn_correct else '❌ Incorrect'}
+    - MobileNetV2 : {'✅ Correct' if mn_correct else '❌ Incorrect'}
+    - DINOv2 : {'✅ Correct' if dn_correct else '❌ Incorrect'}
     """
 )
 
