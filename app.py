@@ -75,15 +75,17 @@ row = df_view.sample(1).iloc[0]
 # CORRECTION CHEMIN IMAGE (IMPORTANT POUR RENDER)
 # ============================================================
 
-# Dossier racine du projet
+# Dossier racine du projet (app.py)
 BASE_DIR = os.path.dirname(__file__)
 
-# On ne garde que la partie après "Images/"
-relative_path = row["image_path"].split("Images")[-1]
-relative_path = relative_path.lstrip("/\\")  # sécurité Windows/Linux
+# Chemin issu du CSV (peut contenir des "\" Windows)
+csv_path = row["image_path"]
 
-# Reconstruction du chemin réel
-image_path = os.path.join(BASE_DIR, "images", "Images", relative_path)
+# Normalisation : remplace "\" par "/" puis normalise le chemin
+csv_path = csv_path.replace("\\", "/")
+
+# Construction du chemin absolu utilisé par Streamlit
+image_path = os.path.normpath(os.path.join(BASE_DIR, csv_path))
 
 # ============================================================
 # AFFICHAGE IMAGE
