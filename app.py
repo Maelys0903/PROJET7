@@ -75,8 +75,15 @@ row = df_view.sample(1).iloc[0]
 # CORRECTION CHEMIN IMAGE (IMPORTANT POUR RENDER)
 # ============================================================
 
+# Dossier racine du projet
 BASE_DIR = os.path.dirname(__file__)
-image_path = os.path.join(BASE_DIR, row["image_path"])
+
+# On ne garde que la partie après "Images/"
+relative_path = row["image_path"].split("Images")[-1]
+relative_path = relative_path.lstrip("/\\")  # sécurité Windows/Linux
+
+# Reconstruction du chemin réel
+image_path = os.path.join(BASE_DIR, "images", "Images", relative_path)
 
 # ============================================================
 # AFFICHAGE IMAGE
