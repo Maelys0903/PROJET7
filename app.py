@@ -20,14 +20,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("🐶 Stanford Dogs – Dashboard d’analyse des modèles")
+st.title("Stanford Dogs – Dashboard d’analyse des modèles")
 st.write(
     """
     Ce dashboard présente une **analyse comparative avancée**
     entre deux modèles de classification d’images :
     **MobileNetV2** et **DINOv2 (ViT-B/14)**.
 
-    👉 Les prédictions sont **pré-calculées** afin de garantir
+    Les prédictions sont **pré-calculées** afin de garantir
     des performances optimales et une compatibilité avec Render (free).
     """
 )
@@ -48,7 +48,7 @@ BASE_DIR = os.path.dirname(__file__)
 # SIDEBAR – FILTRES
 # ============================================================
 
-st.sidebar.title("🎛️ Filtres")
+st.sidebar.title("Filtres")
 
 class_choice = st.sidebar.selectbox(
     "Classe réelle",
@@ -72,7 +72,7 @@ df_view = df.copy()
 if class_choice != "Toutes":
     df_view = df_view[df_view["true_class"] == class_choice]
 
-st.write(f"📊 **{len(df_view)} images** sélectionnées")
+st.write(f"**{len(df_view)} images** sélectionnées")
 
 if len(df_view) == 0:
     st.warning("Aucune image disponible avec ces filtres.")
@@ -84,7 +84,13 @@ if len(df_view) == 0:
 
 st.subheader("Galerie d’images avec prédictions")
 
-N_IMAGES = 6
+N_IMAGES = st.sidebar.slider(
+    "Nombre d’images affichées",
+    min_value=3,
+    max_value=12,
+    value=6,
+    step=3
+)
 sample_df = df_view.sample(min(N_IMAGES, len(df_view)))
 
 cols = st.columns(3)
@@ -123,7 +129,7 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
                 → {row['mobilenet_pred']}  
                 *(probabilité : {row['mobilenet_proba']:.2f})*
 
-                🟩 **DINOv2 (ViT-B/14)**  
+                🟩 **DINOv2**  
                 → {row['dinov2_pred']}  
                 *(probabilité : {row['dinov2_proba']:.2f})*
                 """
@@ -136,7 +142,7 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
 # ============================================================
 
 st.divider()
-st.subheader("📈 Analyse globale des performances")
+st.subheader("Analyse globale des performances")
 
 acc_mn = (df["mobilenet_pred"] == df["true_class"]).mean()
 acc_dn = (df["dinov2_pred"] == df["true_class"]).mean()
@@ -169,7 +175,7 @@ st.plotly_chart(fig_acc, use_container_width=True)
 # ANALYSE PAR CLASSE (GRAPHIQUE INTERACTIF)
 # ============================================================
 
-st.subheader("📊 Comparaison des performances par classe")
+st.subheader("Comparaison des performances par classe")
 
 acc_per_class = (
     df
