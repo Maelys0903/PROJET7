@@ -82,29 +82,36 @@ if len(df_view) == 0:
 # GALERIE D’IMAGES
 # ============================================================
 
-st.subheader("🖼️ Galerie d’images")
+st.subheader("Galerie d’images avec prédictions")
 
-sample_df = df_view.sample(n_images)
+N_IMAGES = 6  # nombre d’images affichées
+sample_df = df_view.sample(min(N_IMAGES, len(df_view)))
 
 cols = st.columns(3)
 
 for i, (_, row) in enumerate(sample_df.iterrows()):
-    col = cols[i % 3]
+    with cols[i % 3]:
 
-    with col:
-        # Nettoyage chemin Windows -> Linux
-        csv_path = row["image_path"].replace("\\", "/")
-        image_path = os.path.normpath(os.path.join(BASE_DIR, csv_path))
+        # Reconstruction du chemin image
+        relative_path = row["image_path"].split("Images")[-1]
+        relative_path = relative_path.lstrip("/\\")
+        image_path = os.path.join(BASE_DIR, "images", "Images", relative_path)
 
         if os.path.exists(image_path):
             img = Image.open(image_path).convert("RGB")
-            st.image(img, use_column_width=True)
+            st.image(img, width=250)
 
-            st.caption(
+            st.markdown(
                 f"""
-                **Vrai :** {row['true_class']}  
-                🔵 MobileNet : {row['mobilenet_pred']}  
-                🟢 DINOv2 : {row['dinov2_pred']}
+                **Classe réelle :** {row['true_class']}
+
+                🟦 **MobileNetV2**  
+                → {row['mobilenet_pred']}  
+                *(proba : {row['mobilenet_proba']:.2f})*
+
+                🟩 **DINOv2**  
+                → {row['dinov2_pred']}  
+                *(proba : {row['dinov2_proba']:.2f})*
                 """
             )
         else:
