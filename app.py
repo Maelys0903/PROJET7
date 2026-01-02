@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("🐶 Stanford Dogs – Dashboard de prédictions")
+st.title("Stanford Dogs – Dashboard de prédictions")
 st.write(
     """
     Ce dashboard compare les prédictions de deux modèles :
@@ -43,7 +43,7 @@ df = load_predictions()
 # SIDEBAR – FILTRES UTILISATEUR
 # ============================================================
 
-st.sidebar.title("🎛️ Filtres")
+st.sidebar.title("Filtres")
 
 class_choice = st.sidebar.selectbox(
     "Classe réelle",
@@ -59,7 +59,7 @@ df_view = df.copy()
 if class_choice != "Toutes":
     df_view = df_view[df_view["true_class"] == class_choice]
 
-st.write(f"📊 **{len(df_view)} images** sélectionnées")
+st.write(f"**{len(df_view)} images** sélectionnées")
 
 if len(df_view) == 0:
     st.warning("Aucune image disponible avec ces filtres.")
@@ -94,7 +94,7 @@ image_path = os.path.normpath(os.path.join(BASE_DIR, csv_path))
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("📷 Image analysée")
+    st.subheader("Image analysée")
 
     if os.path.exists(image_path):
         img = Image.open(image_path).convert("RGB")
@@ -109,15 +109,15 @@ with col1:
 # ============================================================
 
 with col2:
-    st.subheader("🧠 Prédictions")
+    st.subheader("Prédictions")
 
     st.markdown(
         f"""
-        ### 🔵 MobileNetV2  
+        ### MobileNetV2  
         **Classe prédite :** {row['mobilenet_pred']}  
         **Probabilité :** {row['mobilenet_proba']:.2f}
 
-        ### 🟢 DINOv2 (ViT-B/14)  
+        ### DINOv2 (ViT-B/14)  
         **Classe prédite :** {row['dinov2_pred']}  
         **Probabilité :** {row['dinov2_proba']:.2f}
         """
@@ -128,7 +128,7 @@ with col2:
 # ============================================================
 
 st.divider()
-st.subheader("✅ Analyse rapide")
+st.subheader("Analyse rapide")
 
 mn_correct = row["mobilenet_pred"] == row["true_class"]
 dn_correct = row["dinov2_pred"] == row["true_class"]
