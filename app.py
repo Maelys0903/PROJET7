@@ -1,12 +1,14 @@
 # ============================================================
 # Dashboard Streamlit – Stanford Dogs
-# Comparaison MobileNetV2 vs DINOv2 (prédictions pré-calculées)
+# Analyse et comparaison MobileNetV2 vs DINOv2
+# Prédictions pré-calculées (mode production léger)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 from PIL import Image
 import os
+import plotly.express as px
 
 # ============================================================
 # CONFIGURATION STREAMLIT
@@ -18,36 +20,47 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("Stanford Dogs – Dashboard de prédictions")
+st.title("🐶 Stanford Dogs – Dashboard d’analyse des modèles")
 st.write(
     """
-    Ce dashboard compare les prédictions de deux modèles :
-    **MobileNetV2** et **DINOv2 (ViT-B/14)**  
-    Les prédictions sont **pré-calculées** afin de garantir
-    un affichage rapide et compatible avec Render (free).
+    Ce dashboard présente une **analyse comparative avancée**
+    entre deux modèles de classification d’images :
+    **MobileNetV2** et **DINOv2 (ViT-B/14)**.
+
+    👉 Les prédictions sont **pré-calculées** afin de garantir
+    des performances optimales et une compatibilité avec Render (free).
     """
 )
 
 # ============================================================
-# CHARGEMENT DES DONNÉES (CSV)
+# CHARGEMENT DES DONNÉES
 # ============================================================
 
 @st.cache_data
 def load_predictions():
-    """Charge le fichier CSV contenant toutes les prédictions."""
     return pd.read_csv("predictions_mobilenet_dinov2.csv")
 
 df = load_predictions()
 
+BASE_DIR = os.path.dirname(__file__)
+
 # ============================================================
-# SIDEBAR – FILTRES UTILISATEUR
+# SIDEBAR – FILTRES
 # ============================================================
 
-st.sidebar.title("Filtres")
+st.sidebar.title("🎛️ Filtres")
 
 class_choice = st.sidebar.selectbox(
     "Classe réelle",
     ["Toutes"] + sorted(df["true_class"].unique())
+)
+
+n_images = st.sidebar.slider(
+    "Nombre d’images affichées",
+    min_value=3,
+    max_value=12,
+    value=6,
+    step=3
 )
 
 # ============================================================
@@ -59,85 +72,123 @@ df_view = df.copy()
 if class_choice != "Toutes":
     df_view = df_view[df_view["true_class"] == class_choice]
 
-st.write(f"**{len(df_view)} images** sélectionnées")
+st.write(f"📊 **{len(df_view)} images** sélectionnées")
 
 if len(df_view) == 0:
     st.warning("Aucune image disponible avec ces filtres.")
     st.stop()
 
 # ============================================================
-# SÉLECTION D'UNE IMAGE
+# GALERIE D’IMAGES
 # ============================================================
 
-row = df_view.sample(1).iloc[0]
+st.subheader("🖼️ Galerie d’images")
+
+sample_df = df_view.sample(n_images)
+
+cols = st.columns(3)
+
+for i, (_, row) in enumerate(sample_df.iterrows()):
+    col = cols[i % 3]
+
+    with col:
+        # Nettoyage chemin Windows -> Linux
+        csv_path = row["image_path"].replace("\\", "/")
+        image_path = os.path.normpath(os.path.join(BASE_DIR, csv_path))
+
+        if os.path.exists(image_path):
+            img = Image.open(image_path).convert("RGB")
+            st.image(img, use_column_width=True)
+
+            st.caption(
+                f"""
+                **Vrai :** {row['true_class']}  
+                🔵 MobileNet : {row['mobilenet_pred']}  
+                🟢 DINOv2 : {row['dinov2_pred']}
+                """
+            )
+        else:
+            st.error("Image introuvable")
 
 # ============================================================
-# CORRECTION CHEMIN IMAGE (IMPORTANT POUR RENDER)
-# ============================================================
-
-# Dossier racine du projet (app.py)
-BASE_DIR = os.path.dirname(__file__)
-
-# Chemin issu du CSV (peut contenir des "\" Windows)
-csv_path = row["image_path"]
-
-# Normalisation : remplace "\" par "/" puis normalise le chemin
-csv_path = csv_path.replace("\\", "/")
-
-# Construction du chemin absolu utilisé par Streamlit
-image_path = os.path.normpath(os.path.join(BASE_DIR, csv_path))
-
-# ============================================================
-# AFFICHAGE IMAGE
-# ============================================================
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Image analysée")
-
-    if os.path.exists(image_path):
-        img = Image.open(image_path).convert("RGB")
-        st.image(img, width=350)
-        st.caption(f"Classe réelle : {row['true_class']}")
-    else:
-        st.error("❌ Image introuvable")
-        st.write("Chemin cherché :", image_path)
-
-# ============================================================
-# AFFICHAGE DES PRÉDICTIONS
-# ============================================================
-
-with col2:
-    st.subheader("Prédictions")
-
-    st.markdown(
-        f"""
-        ### MobileNetV2  
-        **Classe prédite :** {row['mobilenet_pred']}  
-        **Probabilité :** {row['mobilenet_proba']:.2f}
-
-        ### DINOv2 (ViT-B/14)  
-        **Classe prédite :** {row['dinov2_pred']}  
-        **Probabilité :** {row['dinov2_proba']:.2f}
-        """
-    )
-
-# ============================================================
-# ANALYSE RAPIDE
+# ANALYSE GLOBALE DES PERFORMANCES
 # ============================================================
 
 st.divider()
-st.subheader("Analyse rapide")
+st.subheader("📈 Analyse globale des performances")
 
-mn_correct = row["mobilenet_pred"] == row["true_class"]
-dn_correct = row["dinov2_pred"] == row["true_class"]
+acc_mn = (df["mobilenet_pred"] == df["true_class"]).mean()
+acc_dn = (df["dinov2_pred"] == df["true_class"]).mean()
 
-st.write(
-    f"""
-    - MobileNetV2 : {'✅ Correct' if mn_correct else '❌ Incorrect'}
-    - DINOv2 : {'✅ Correct' if dn_correct else '❌ Incorrect'}
-    """
+acc_df = pd.DataFrame({
+    "Modèle": ["MobileNetV2", "DINOv2"],
+    "Accuracy": [acc_mn, acc_dn]
+})
+
+fig_acc = px.bar(
+    acc_df,
+    x="Modèle",
+    y="Accuracy",
+    color="Modèle",
+    color_discrete_map={
+        "MobileNetV2": "#1f77b4",  # bleu foncé (WCAG)
+        "DINOv2": "#2ca02c"        # vert foncé (WCAG)
+    },
+    title="Accuracy globale par modèle"
+)
+
+fig_acc.update_layout(
+    yaxis_tickformat=".0%",
+    font=dict(size=14)
+)
+
+st.plotly_chart(fig_acc, use_container_width=True)
+
+# ============================================================
+# ANALYSE PAR CLASSE (GRAPHIQUE INTERACTIF)
+# ============================================================
+
+st.subheader("📊 Comparaison des performances par classe")
+
+acc_per_class = (
+    df
+    .assign(
+        mn_correct=lambda x: x["mobilenet_pred"] == x["true_class"],
+        dn_correct=lambda x: x["dinov2_pred"] == x["true_class"]
+    )
+    .groupby("true_class")[["mn_correct", "dn_correct"]]
+    .mean()
+    .reset_index()
+)
+
+acc_per_class.columns = ["Classe", "MobileNetV2", "DINOv2"]
+
+fig_class = px.scatter(
+    acc_per_class,
+    x="MobileNetV2",
+    y="DINOv2",
+    hover_name="Classe",
+    labels={
+        "MobileNetV2": "Accuracy MobileNetV2",
+        "DINOv2": "Accuracy DINOv2"
+    },
+    title="Comparaison des performances par classe"
+)
+
+fig_class.update_traces(marker=dict(size=10))
+fig_class.update_layout(font=dict(size=14))
+
+st.plotly_chart(fig_class, use_container_width=True)
+
+# ============================================================
+# ACCESSIBILITÉ (WCAG)
+# ============================================================
+
+st.info(
+    "♿ **Accessibilité (WCAG)** : "
+    "couleurs contrastées, tailles de police lisibles, "
+    "informations redondantes (texte + couleur) "
+    "et graphiques interactifs accessibles."
 )
 
 # ============================================================
@@ -147,5 +198,5 @@ st.write(
 st.divider()
 st.caption(
     "Projet Computer Vision – Stanford Dogs | "
-    "Dashboard Streamlit – Prédictions pré-calculées"
+    "Dashboard Streamlit – Comparaison MobileNetV2 vs DINOv2"
 )
