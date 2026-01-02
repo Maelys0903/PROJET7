@@ -84,7 +84,7 @@ if len(df_view) == 0:
 
 st.subheader("Galerie d’images avec prédictions")
 
-N_IMAGES = 6  # nombre d’images affichées
+N_IMAGES = 6
 sample_df = df_view.sample(min(N_IMAGES, len(df_view)))
 
 cols = st.columns(3)
@@ -92,9 +92,12 @@ cols = st.columns(3)
 for i, (_, row) in enumerate(sample_df.iterrows()):
     with cols[i % 3]:
 
-        # Reconstruction du chemin image
+        # === Reconstruction du chemin image ===
+        BASE_DIR = os.path.dirname(__file__)
+
         relative_path = row["image_path"].split("Images")[-1]
         relative_path = relative_path.lstrip("/\\")
+
         image_path = os.path.join(BASE_DIR, "images", "Images", relative_path)
 
         if os.path.exists(image_path):
@@ -115,7 +118,7 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
                 """
             )
         else:
-            st.error("Image introuvable")
+            st.error(f"❌ Image introuvable\n{image_path}")
 
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES
