@@ -89,30 +89,27 @@ sample_df = df_view.sample(min(N_IMAGES, len(df_view)))
 
 cols = st.columns(3)
 
-# Dossier racine du projet (compatible Render)
+# Dossier racine du projet (app.py)
 BASE_DIR = os.path.dirname(__file__)
 
 for i, (_, row) in enumerate(sample_df.iterrows()):
     with cols[i % 3]:
 
         # ----------------------------------------------------
-        # Reconstruction ROBUSTE du chemin image
+        # CHEMIN IMAGE — VERSION QUI FONCTIONNE SUR RENDER
         # ----------------------------------------------------
-        raw_path = row["image_path"]
+        csv_path = row["image_path"]
 
-        # Normalisation du chemin (Windows -> Linux)
-        clean_path = raw_path.replace("\\", "/")
+        # Normalisation Windows -> Linux
+        csv_path = csv_path.replace("\\", "/")
 
-        # On conserve uniquement la partie après "Images/"
-        relative_path = clean_path.split("Images/")[-1]
-
-        # Reconstruction du chemin absolu
+        # Construction du chemin absolu
         image_path = os.path.normpath(
-            os.path.join(BASE_DIR, "images", "Images", relative_path)
+            os.path.join(BASE_DIR, csv_path)
         )
 
         # ----------------------------------------------------
-        # Affichage image + prédictions
+        # AFFICHAGE
         # ----------------------------------------------------
         if os.path.exists(image_path):
             img = Image.open(image_path).convert("RGB")
@@ -132,7 +129,7 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
                 """
             )
         else:
-            st.error("❌ Image introuvable")
+            st.error(f"❌ Image introuvable : {csv_path}")
 
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES
