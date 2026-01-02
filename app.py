@@ -89,17 +89,31 @@ sample_df = df_view.sample(min(N_IMAGES, len(df_view)))
 
 cols = st.columns(3)
 
+# Dossier racine du projet (compatible Render)
+BASE_DIR = os.path.dirname(__file__)
+
 for i, (_, row) in enumerate(sample_df.iterrows()):
     with cols[i % 3]:
 
-        # === Reconstruction du chemin image ===
-        BASE_DIR = os.path.dirname(__file__)
+        # ----------------------------------------------------
+        # Reconstruction ROBUSTE du chemin image
+        # ----------------------------------------------------
+        raw_path = row["image_path"]
 
-        relative_path = row["image_path"].split("Images")[-1]
-        relative_path = relative_path.lstrip("/\\")
+        # Normalisation du chemin (Windows -> Linux)
+        clean_path = raw_path.replace("\\", "/")
 
-        image_path = os.path.join(BASE_DIR, "images", "Images", relative_path)
+        # On conserve uniquement la partie après "Images/"
+        relative_path = clean_path.split("Images/")[-1]
 
+        # Reconstruction du chemin absolu
+        image_path = os.path.normpath(
+            os.path.join(BASE_DIR, "images", "Images", relative_path)
+        )
+
+        # ----------------------------------------------------
+        # Affichage image + prédictions
+        # ----------------------------------------------------
         if os.path.exists(image_path):
             img = Image.open(image_path).convert("RGB")
             st.image(img, width=250)
@@ -110,15 +124,15 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
 
                 🟦 **MobileNetV2**  
                 → {row['mobilenet_pred']}  
-                *(proba : {row['mobilenet_proba']:.2f})*
+                *(probabilité : {row['mobilenet_proba']:.2f})*
 
-                🟩 **DINOv2**  
+                🟩 **DINOv2 (ViT-B/14)**  
                 → {row['dinov2_pred']}  
-                *(proba : {row['dinov2_proba']:.2f})*
+                *(probabilité : {row['dinov2_proba']:.2f})*
                 """
             )
         else:
-            st.error(f"❌ Image introuvable\n{image_path}")
+            st.error("❌ Image introuvable")
 
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES
