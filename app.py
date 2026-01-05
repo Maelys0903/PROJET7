@@ -9,6 +9,7 @@ import pandas as pd
 from PIL import Image
 import os
 import plotly.express as px
+import base64
 
 # ============================================================
 # CONFIGURATION STREAMLIT
@@ -18,6 +19,31 @@ st.set_page_config(
     page_title="Stanford Dogs – Dashboard",
     layout="wide",
     initial_sidebar_state="expanded"
+)
+
+st.markdown(
+    """
+    <style>
+    .image-card {
+        height: 240px;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 10px;
+        background-color: #f2f2f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .image-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 st.title("Stanford Dogs – Dashboard d’analyse des modèles")
@@ -103,10 +129,20 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
             continue
 
         # ----------------------------------------------------
-        # IMAGE
+        # IMAGE (HAUTEUR FIXE – ALIGNEMENT PARFAIT)
         # ----------------------------------------------------
-        img = Image.open(image_path).convert("RGB")
-        st.image(img, width=250)
+        with open(image_path, "rb") as f:
+            img_base64 = base64.b64encode(f.read()).decode()
+
+        st.markdown(
+            f"""
+            <div class="image-card">
+                <img src="data:image/jpeg;base64,{img_base64}">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         st.caption(f"Classe réelle : {row['true_class']}")
 
         # ----------------------------------------------------
@@ -115,27 +151,24 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
         mn_correct = row["mobilenet_pred"] == row["true_class"]
         dn_correct = row["dinov2_pred"] == row["true_class"]
 
-        # ----------------------------------------------------
-        # AFFICHAGE CÔTE À CÔTE
-        # ----------------------------------------------------
         col_mn, col_dn = st.columns(2)
 
         with col_mn:
             st.markdown("🟦 **MobileNetV2**")
-            st.markdown(f"Prédiction : `{row['mobilenet_pred']}`")
-            st.markdown(f"Probabilité : **{row['mobilenet_proba']:.2f}**")
+            st.markdown(f"`{row['mobilenet_pred']}`")
+            st.markdown(f"Proba : **{row['mobilenet_proba']:.2f}**")
             st.markdown(
-                f"Résultat : {'✅ Correct' if mn_correct else '❌ Incorrect'}"
+                f"{'✅ Correct' if mn_correct else '❌ Incorrect'}"
             )
 
         with col_dn:
             st.markdown("🟩 **DINOv2**")
-            st.markdown(f"Prédiction : `{row['dinov2_pred']}`")
-            st.markdown(f"Probabilité : **{row['dinov2_proba']:.2f}**")
+            st.markdown(f"`{row['dinov2_pred']}`")
+            st.markdown(f"Proba : **{row['dinov2_proba']:.2f}**")
             st.markdown(
-                f"Résultat : {'✅ Correct' if dn_correct else '❌ Incorrect'}"
+                f"{'✅ Correct' if dn_correct else '❌ Incorrect'}"
             )
-            
+
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES (IMAGES AFFICHÉES)
 # ============================================================
