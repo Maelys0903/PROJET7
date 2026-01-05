@@ -151,23 +151,21 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
         mn_correct = row["mobilenet_pred"] == row["true_class"]
         dn_correct = row["dinov2_pred"] == row["true_class"]
 
-        col_mn, col_dn = st.columns(2)
+        st.markdown(
+            f"""
+            🟦 **MobileNetV2**  
+            `{row['mobilenet_pred']}`  
+            Proba : **{row['mobilenet_proba']:.2f}**  
+            {'✅ Correct' if mn_correct else '❌ Incorrect'}
 
-        with col_mn:
-            st.markdown("🟦 **MobileNetV2**")
-            st.markdown(f"`{row['mobilenet_pred']}`")
-            st.markdown(f"Proba : **{row['mobilenet_proba']:.2f}**")
-            st.markdown(
-                f"{'✅ Correct' if mn_correct else '❌ Incorrect'}"
-            )
+            ---
 
-        with col_dn:
-            st.markdown("🟩 **DINOv2**")
-            st.markdown(f"`{row['dinov2_pred']}`")
-            st.markdown(f"Proba : **{row['dinov2_proba']:.2f}**")
-            st.markdown(
-                f"{'✅ Correct' if dn_correct else '❌ Incorrect'}"
-            )
+            🟩 **DINOv2**  
+            `{row['dinov2_pred']}`  
+            Proba : **{row['dinov2_proba']:.2f}**  
+            {'✅ Correct' if dn_correct else '❌ Incorrect'}
+            """
+        )
 
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES (IMAGES AFFICHÉES)
