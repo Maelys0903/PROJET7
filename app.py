@@ -16,12 +16,6 @@ import base64
 # ============================================================
 
 def clean_class_name(class_name: str) -> str:
-    """
-    Supprime l'identifiant WordNet (nXXXXXXXX-) d'une classe.
-    Exemple :
-    n02093428-American_Staffordshire_terrier
-    -> American_Staffordshire_terrier
-    """
     if "-" in class_name:
         return class_name.split("-", 1)[1]
     return class_name
@@ -66,7 +60,7 @@ st.write(
     """
     Ce dashboard présente une **analyse comparative avancée**
     entre deux modèles de classification d’images :
-    **MobileNetV2** et **DINOv2 (ViT-B/14)**.
+    **MobileNetV2** et **DINOv2**.
 
     Les prédictions sont **pré-calculées** afin de garantir
     des performances optimales et une compatibilité avec Render (free).
@@ -158,7 +152,7 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
             unsafe_allow_html=True
         )
 
-        st.caption(f"Classe réelle : {row['true_class']}")
+        st.caption(f"Classe réelle : {clean_class_name(row['true_class'])}")
 
         # ----------------------------------------------------
         # ÉVALUATION DES MODÈLES
