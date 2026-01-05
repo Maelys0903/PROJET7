@@ -37,16 +37,6 @@ st.markdown(
     .block-container {
         padding-top: 1rem;
     }
-
-    /* Réduit la hauteur du header Streamlit */
-    header[data-testid="stHeader"] {
-        height: 0.5rem;
-    }
-
-    /* Supprime le fond gris du header */
-    header[data-testid="stHeader"] {
-        background: none;
-    }
     </style>
     """,
     unsafe_allow_html=True
