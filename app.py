@@ -127,10 +127,6 @@ if len(df_view) == 0:
 
 st.subheader("Galerie d’images avec prédictions")
 
-st.caption(
-    f"Classe réelle : {clean_class_name(row['true_class'])}"
-)
-
 sample_df = df_view.sample(min(n_images, len(df_view)))
 cols = st.columns(3)
 
