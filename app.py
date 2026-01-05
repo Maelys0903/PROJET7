@@ -37,6 +37,16 @@ st.markdown(
     .block-container {
         padding-top: 1rem;
     }
+
+    /* Réduit la hauteur du header Streamlit */
+    header[data-testid="stHeader"] {
+        height: 0.5rem;
+    }
+
+    /* Supprime le fond gris du header */
+    header[data-testid="stHeader"] {
+        background: none;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -174,16 +184,19 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
 
         st.markdown(
             f"""
-            🟦 **MobileNetV2**  
-            `{clean_class_name(row['mobilenet_pred'])}`  
-            Proba : **{row['mobilenet_proba']:.2f}**  
-            {'✅ Correct' if mn_correct else '❌ Incorrect'}
-            ---
-            🟩 **DINOv2**  
-            `{clean_class_name(row['dinov2_pred'])}`  
-            Proba : **{row['dinov2_proba']:.2f}**  
-            {'✅ Correct' if dn_correct else '❌ Incorrect'}
-            """
+        🟦 MobileNetV2  
+        `{clean_class_name(row['mobilenet_pred'])}`  
+        Proba : **{row['mobilenet_proba']:.2f}**  
+        {'✅ Correct' if mn_correct else '❌ Incorrect'}
+
+        <br>
+
+        🟩 DINOv2  
+        `{clean_class_name(row['dinov2_pred'])}`  
+        Proba : **{row['dinov2_proba']:.2f}**  
+        {'✅ Correct' if dn_correct else '❌ Incorrect'}
+        """,
+            unsafe_allow_html=True
         )
 
 # ============================================================
