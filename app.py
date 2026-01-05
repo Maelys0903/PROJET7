@@ -115,7 +115,7 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
             )
         else:
             st.error("❌ Image introuvable")
-            
+
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES
 # ============================================================
@@ -151,40 +151,54 @@ fig_acc.update_layout(
 st.plotly_chart(fig_acc, use_container_width=True)
 
 # ============================================================
-# ANALYSE PAR CLASSE (GRAPHIQUE INTERACTIF)
+# ANALYSE PAR CLASSE — DYNAMIQUE (IMAGES AFFICHÉES)
 # ============================================================
 
-st.subheader("Comparaison des performances par classe")
+st.subheader("Analyse des performances (images affichées)")
 
-acc_per_class = (
-    df
-    .assign(
-        mn_correct=lambda x: x["mobilenet_pred"] == x["true_class"],
-        dn_correct=lambda x: x["dinov2_pred"] == x["true_class"]
+if len(sample_df) < 2:
+    st.info("Pas assez d’images pour une analyse statistique.")
+else:
+    acc_per_class = (
+        sample_df
+        .assign(
+            mn_correct=lambda x: x["mobilenet_pred"] == x["true_class"],
+            dn_correct=lambda x: x["dinov2_pred"] == x["true_class"]
+        )
+        .groupby("true_class")[["mn_correct", "dn_correct"]]
+        .mean()
+        .reset_index()
     )
-    .groupby("true_class")[["mn_correct", "dn_correct"]]
-    .mean()
-    .reset_index()
-)
 
-acc_per_class.columns = ["Classe", "MobileNetV2", "DINOv2"]
+    acc_per_class.columns = ["Classe", "MobileNetV2", "DINOv2"]
 
-fig_class = px.scatter(
-    acc_per_class,
-    x="MobileNetV2",
-    y="DINOv2",
-    hover_name="Classe",
-    labels={
-        "MobileNetV2": "Accuracy MobileNetV2",
-        "DINOv2": "Accuracy DINOv2"
-    },
-    title="Comparaison des performances par classe"
-)
+    fig_class = px.scatter(
+        acc_per_class,
+        x="MobileNetV2",
+        y="DINOv2",
+        hover_name="Classe",
+        labels={
+            "MobileNetV2": "Accuracy MobileNetV2",
+            "DINOv2": "Accuracy DINOv2"
+        },
+        title="Comparaison des performances par classe (images affichées)",
+    )
 
-fig_class.update_traces(marker=dict(size=10))
-fig_class.update_layout(font=dict(size=14))
+    fig_class.update_traces(
+        marker=dict(
+            size=14,
+            color="#1f77b4",
+            line=dict(width=1, color="black")
+        )
+    )
 
-st.plotly_chart(fig_class, use_container_width=True)
+    fig_class.update_layout(
+        font=dict(size=14),
+        xaxis=dict(range=[0, 1]),
+        yaxis=dict(range=[0, 1])
+    )
+
+    st.plotly_chart(fig_class, use_container_width=True)
 
 # ============================================================
 # ACCESSIBILITÉ (WCAG)
