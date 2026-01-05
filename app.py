@@ -52,7 +52,8 @@ st.sidebar.title("Filtres")
 
 class_choice = st.sidebar.selectbox(
     "Classe réelle",
-    ["Toutes"] + sorted(df["true_class"].unique())
+    ["Toutes"] + sorted(df["true_class"].unique()),
+    key="class_choice"
 )
 
 n_images = st.sidebar.slider(
@@ -60,7 +61,8 @@ n_images = st.sidebar.slider(
     min_value=3,
     max_value=12,
     value=6,
-    step=3
+    step=3,
+    key="n_images_slider"
 )
 
 # ============================================================
@@ -84,39 +86,16 @@ if len(df_view) == 0:
 
 st.subheader("Galerie d’images avec prédictions")
 
-N_IMAGES = st.sidebar.slider(
-    "Nombre d’images affichées",
-    min_value=3,
-    max_value=12,
-    value=6,
-    step=3
-)
-sample_df = df_view.sample(min(N_IMAGES, len(df_view)))
-
+sample_df = df_view.sample(min(n_images, len(df_view)))
 cols = st.columns(3)
-
-# Dossier racine du projet (app.py)
-BASE_DIR = os.path.dirname(__file__)
 
 for i, (_, row) in enumerate(sample_df.iterrows()):
     with cols[i % 3]:
 
-        # ----------------------------------------------------
-        # CHEMIN IMAGE — VERSION QUI FONCTIONNE SUR RENDER
-        # ----------------------------------------------------
-        csv_path = row["image_path"]
+        # --- Chemin image (VERSION QUI FONCTIONNE SUR RENDER) ---
+        csv_path = row["image_path"].replace("\\", "/")
+        image_path = os.path.normpath(os.path.join(BASE_DIR, csv_path))
 
-        # Normalisation Windows -> Linux
-        csv_path = csv_path.replace("\\", "/")
-
-        # Construction du chemin absolu
-        image_path = os.path.normpath(
-            os.path.join(BASE_DIR, csv_path)
-        )
-
-        # ----------------------------------------------------
-        # AFFICHAGE
-        # ----------------------------------------------------
         if os.path.exists(image_path):
             img = Image.open(image_path).convert("RGB")
             st.image(img, width=250)
@@ -129,14 +108,14 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
                 → {row['mobilenet_pred']}  
                 *(probabilité : {row['mobilenet_proba']:.2f})*
 
-                🟩 **DINOv2**  
+                🟩 **DINOv2 (ViT-B/14)**  
                 → {row['dinov2_pred']}  
                 *(probabilité : {row['dinov2_proba']:.2f})*
                 """
             )
         else:
-            st.error(f"❌ Image introuvable : {csv_path}")
-
+            st.error("❌ Image introuvable")
+            
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES
 # ============================================================
