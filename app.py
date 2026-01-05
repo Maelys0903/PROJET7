@@ -12,6 +12,21 @@ import plotly.express as px
 import base64
 
 # ============================================================
+# RACCOURCI NOMS CLASSES
+# ============================================================
+
+def clean_class_name(class_name: str) -> str:
+    """
+    Supprime l'identifiant WordNet (nXXXXXXXX-) d'une classe.
+    Exemple :
+    n02093428-American_Staffordshire_terrier
+    -> American_Staffordshire_terrier
+    """
+    if "-" in class_name:
+        return class_name.split("-", 1)[1]
+    return class_name
+
+# ============================================================
 # CONFIGURATION STREAMLIT
 # ============================================================
 
@@ -112,6 +127,10 @@ if len(df_view) == 0:
 
 st.subheader("Galerie d’images avec prédictions")
 
+st.caption(
+    f"Classe réelle : {clean_class_name(row['true_class'])}"
+)
+
 sample_df = df_view.sample(min(n_images, len(df_view)))
 cols = st.columns(3)
 
@@ -154,14 +173,14 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
         st.markdown(
             f"""
             🟦 **MobileNetV2**  
-            `{row['mobilenet_pred']}`  
+            `{clean_class_name(row['mobilenet_pred'])}`  
             Proba : **{row['mobilenet_proba']:.2f}**  
             {'✅ Correct' if mn_correct else '❌ Incorrect'}
 
             ---
 
             🟩 **DINOv2**  
-            `{row['dinov2_pred']}`  
+            `{clean_class_name(row['dinov2_pred'])}`  
             Proba : **{row['dinov2_proba']:.2f}**  
             {'✅ Correct' if dn_correct else '❌ Incorrect'}
             """
