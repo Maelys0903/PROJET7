@@ -33,6 +33,28 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    /* Supprime l’espace blanc en haut */
+    .block-container {
+        padding-top: 1rem;
+    }
+
+    /* Réduit la hauteur du header Streamlit */
+    header[data-testid="stHeader"] {
+        height: 0.5rem;
+    }
+
+    /* Supprime le fond gris du header */
+    header[data-testid="stHeader"] {
+        background: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <style>
     .image-card {
         height: 240px;
         width: 100%;
@@ -87,8 +109,8 @@ st.sidebar.title("Filtres")
 
 class_choice = st.sidebar.selectbox(
     "Classe réelle",
-    ["Toutes"] + sorted(df["true_class"].unique()),
-    key="class_choice"
+    ["Aléatoire"] + sorted(df["true_class"].unique()),
+    format_func=lambda x: "Toutes" if x == "Toutes" else clean_class_name(x)
 )
 
 n_images = st.sidebar.slider(
@@ -106,7 +128,7 @@ n_images = st.sidebar.slider(
 
 df_view = df.copy()
 
-if class_choice != "Toutes":
+if class_choice != "Aléatoire":
     df_view = df_view[df_view["true_class"] == class_choice]
 
 st.write(f"**{len(df_view)} images** sélectionnées")
@@ -166,9 +188,7 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
             `{clean_class_name(row['mobilenet_pred'])}`  
             Proba : **{row['mobilenet_proba']:.2f}**  
             {'✅ Correct' if mn_correct else '❌ Incorrect'}
-
             ---
-
             🟩 **DINOv2**  
             `{clean_class_name(row['dinov2_pred'])}`  
             Proba : **{row['dinov2_proba']:.2f}**  
