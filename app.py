@@ -115,90 +115,81 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
             )
         else:
             st.error("❌ Image introuvable")
-
+            
 # ============================================================
-# ANALYSE GLOBALE DES PERFORMANCES
+# ANALYSE GLOBALE DES PERFORMANCES (IMAGES AFFICHÉES)
 # ============================================================
 
 st.divider()
-st.subheader("Analyse globale des performances")
+st.subheader("Analyse globale des performances (images affichées)")
 
-acc_mn = (df["mobilenet_pred"] == df["true_class"]).mean()
-acc_dn = (df["dinov2_pred"] == df["true_class"]).mean()
-
-acc_df = pd.DataFrame({
-    "Modèle": ["MobileNetV2", "DINOv2"],
-    "Accuracy": [acc_mn, acc_dn]
-})
-
-fig_acc = px.bar(
-    acc_df,
-    x="Modèle",
-    y="Accuracy",
-    color="Modèle",
-    color_discrete_map={
-        "MobileNetV2": "#1f77b4",  # bleu foncé (WCAG)
-        "DINOv2": "#2ca02c"        # vert foncé (WCAG)
-    },
-    title="Accuracy globale par modèle"
-)
-
-fig_acc.update_layout(
-    yaxis_tickformat=".0%",
-    font=dict(size=14)
-)
-
-st.plotly_chart(fig_acc, use_container_width=True)
-
-# ============================================================
-# ANALYSE PAR CLASSE — DYNAMIQUE (IMAGES AFFICHÉES)
-# ============================================================
-
-st.subheader("Analyse des performances (images affichées)")
-
-if len(sample_df) < 2:
-    st.info("Pas assez d’images pour une analyse statistique.")
+# Sécurité si peu d’images
+if len(sample_df) == 0:
+    st.warning("Aucune image sélectionnée pour l’analyse.")
 else:
-    acc_per_class = (
-        sample_df
-        .assign(
-            mn_correct=lambda x: x["mobilenet_pred"] == x["true_class"],
-            dn_correct=lambda x: x["dinov2_pred"] == x["true_class"]
-        )
-        .groupby("true_class")[["mn_correct", "dn_correct"]]
-        .mean()
-        .reset_index()
-    )
+    acc_mn = (sample_df["mobilenet_pred"] == sample_df["true_class"]).mean()
+    acc_dn = (sample_df["dinov2_pred"] == sample_df["true_class"]).mean()
 
-    acc_per_class.columns = ["Classe", "MobileNetV2", "DINOv2"]
+    acc_df = pd.DataFrame({
+        "Modèle": ["MobileNetV2", "DINOv2"],
+        "Accuracy": [acc_mn, acc_dn]
+    })
 
-    fig_class = px.scatter(
-        acc_per_class,
-        x="MobileNetV2",
-        y="DINOv2",
-        hover_name="Classe",
-        labels={
-            "MobileNetV2": "Accuracy MobileNetV2",
-            "DINOv2": "Accuracy DINOv2"
+    fig_acc = px.bar(
+        acc_df,
+        x="Modèle",
+        y="Accuracy",
+        color="Modèle",
+        color_discrete_map={
+            "MobileNetV2": "#1f77b4",  # bleu foncé (WCAG)
+            "DINOv2": "#2ca02c"        # vert foncé (WCAG)
         },
-        title="Comparaison des performances par classe (images affichées)",
+        text=acc_df["Accuracy"].map(lambda x: f"{x:.0%}"),
+        title="Accuracy sur les images affichées"
     )
 
-    fig_class.update_traces(
-        marker=dict(
-            size=14,
-            color="#1f77b4",
-            line=dict(width=1, color="black")
-        )
+    fig_acc.update_layout(
+        yaxis=dict(range=[0, 1]),
+        font=dict(size=14)
     )
 
-    fig_class.update_layout(
-        font=dict(size=14),
-        xaxis=dict(range=[0, 1]),
-        yaxis=dict(range=[0, 1])
-    )
+    st.plotly_chart(fig_acc, use_container_width=True)
 
-    st.plotly_chart(fig_class, use_container_width=True)
+# ============================================================
+# ANALYSE PAR CLASSE (GRAPHIQUE INTERACTIF)
+# ============================================================
+
+st.subheader("Comparaison des performances par classe")
+
+acc_per_class = (
+    df
+    .assign(
+        mn_correct=lambda x: x["mobilenet_pred"] == x["true_class"],
+        dn_correct=lambda x: x["dinov2_pred"] == x["true_class"]
+    )
+    .groupby("true_class")[["mn_correct", "dn_correct"]]
+    .mean()
+    .reset_index()
+)
+
+acc_per_class.columns = ["Classe", "MobileNetV2", "DINOv2"]
+
+fig_class = px.scatter(
+    acc_per_class,
+    x="MobileNetV2",
+    y="DINOv2",
+    hover_name="Classe",
+    labels={
+        "MobileNetV2": "Accuracy MobileNetV2",
+        "DINOv2": "Accuracy DINOv2"
+    },
+    title="Comparaison des performances par classe"
+)
+
+fig_class.update_traces(marker=dict(size=10))
+fig_class.update_layout(font=dict(size=14))
+
+st.plotly_chart(fig_class, use_container_width=True)
 
 # ============================================================
 # ACCESSIBILITÉ (WCAG)
