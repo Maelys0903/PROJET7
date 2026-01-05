@@ -81,63 +81,20 @@ if len(df_view) == 0:
     st.stop()
 
 # ============================================================
-# GALERIE D’IMAGES – PAGINÉE (3 PAR 3)
+# GALERIE D’IMAGES
 # ============================================================
 
 st.subheader("Galerie d’images avec prédictions")
 
-IMAGES_PER_PAGE = 3
-
-# ------------------------------------------------------------
-# INIT ÉTAT PAGE
-# ------------------------------------------------------------
-if "page" not in st.session_state:
-    st.session_state.page = 0
-
-total_images = len(df_view)
-total_pages = (total_images - 1) // IMAGES_PER_PAGE + 1
-
-# ------------------------------------------------------------
-# BOUTONS DE NAVIGATION
-# ------------------------------------------------------------
-col_prev, col_page, col_next = st.columns([1, 2, 1])
-
-with col_prev:
-    if st.button("◀ Précédent", disabled=st.session_state.page == 0):
-        st.session_state.page -= 1
-
-with col_page:
-    st.markdown(
-        f"<div style='text-align:center; font-weight:600;'>"
-        f"Page {st.session_state.page + 1} / {total_pages}"
-        f"</div>",
-        unsafe_allow_html=True
-    )
-
-with col_next:
-    if st.button(
-        "Suivant ▶",
-        disabled=st.session_state.page >= total_pages - 1
-    ):
-        st.session_state.page += 1
-
-# ------------------------------------------------------------
-# SÉLECTION DES IMAGES À AFFICHER
-# ------------------------------------------------------------
-start_idx = st.session_state.page * IMAGES_PER_PAGE
-end_idx = start_idx + IMAGES_PER_PAGE
-
-page_df = df_view.iloc[start_idx:end_idx]
-
+sample_df = df_view.sample(min(n_images, len(df_view)))
 cols = st.columns(3)
 
-# ------------------------------------------------------------
-# AFFICHAGE DES CARTES
-# ------------------------------------------------------------
-for col, (_, row) in zip(cols, page_df.iterrows()):
-    with col:
+for i, (_, row) in enumerate(sample_df.iterrows()):
+    with cols[i % 3]:
 
-        # --- CHEMIN IMAGE (RENDER OK) ---
+        # ----------------------------------------------------
+        # CHEMIN IMAGE (VERSION QUI FONCTIONNE SUR RENDER)
+        # ----------------------------------------------------
         csv_path = row["image_path"].replace("\\", "/")
         image_path = os.path.normpath(os.path.join(BASE_DIR, csv_path))
 
@@ -145,34 +102,39 @@ for col, (_, row) in zip(cols, page_df.iterrows()):
             st.error("❌ Image introuvable")
             continue
 
+        # ----------------------------------------------------
+        # IMAGE
+        # ----------------------------------------------------
         img = Image.open(image_path).convert("RGB")
-        st.image(img, width=260)
+        st.image(img, width=250)
+        st.caption(f"Classe réelle : {row['true_class']}")
 
-        st.markdown(f"**Classe réelle :** `{row['true_class']}`")
-
-        # --- ÉVALUATION ---
+        # ----------------------------------------------------
+        # ÉVALUATION DES MODÈLES
+        # ----------------------------------------------------
         mn_correct = row["mobilenet_pred"] == row["true_class"]
         dn_correct = row["dinov2_pred"] == row["true_class"]
 
-        st.markdown("---")
+        # ----------------------------------------------------
+        # AFFICHAGE CÔTE À CÔTE
+        # ----------------------------------------------------
+        col_mn, col_dn = st.columns(2)
 
-        st.markdown(
-            f"""
-            🟦 **MobileNetV2**  
-            `{row['mobilenet_pred']}`  
-            Proba : **{row['mobilenet_proba']:.2f}**  
-            {'✅ Correct' if mn_correct else '❌ Incorrect'}
-            """
-        )
+        with col_mn:
+            st.markdown("🟦 **MobileNetV2**")
+            st.markdown(f"Prédiction : `{row['mobilenet_pred']}`")
+            st.markdown(f"Probabilité : **{row['mobilenet_proba']:.2f}**")
+            st.markdown(
+                f"Résultat : {'✅ Correct' if mn_correct else '❌ Incorrect'}"
+            )
 
-        st.markdown(
-            f"""
-            🟩 **DINOv2**  
-            `{row['dinov2_pred']}`  
-            Proba : **{row['dinov2_proba']:.2f}**  
-            {'✅ Correct' if dn_correct else '❌ Incorrect'}
-            """
-        )
+        with col_dn:
+            st.markdown("🟩 **DINOv2**")
+            st.markdown(f"Prédiction : `{row['dinov2_pred']}`")
+            st.markdown(f"Probabilité : **{row['dinov2_proba']:.2f}**")
+            st.markdown(
+                f"Résultat : {'✅ Correct' if dn_correct else '❌ Incorrect'}"
+            )
             
 # ============================================================
 # ANALYSE GLOBALE DES PERFORMANCES (IMAGES AFFICHÉES)
