@@ -100,19 +100,25 @@ for i, (_, row) in enumerate(sample_df.iterrows()):
             img = Image.open(image_path).convert("RGB")
             st.image(img, width=250)
 
+            mn_correct = row["mobilenet_pred"] == row["true_class"]
+            dn_correct = row["dinov2_pred"] == row["true_class"]
+
             st.markdown(
                 f"""
-                **Classe réelle :** {row['true_class']}
+                **Classe réelle :** `{row['true_class']}`
 
                 🟦 **MobileNetV2**  
-                → {row['mobilenet_pred']}  
-                *(probabilité : {row['mobilenet_proba']:.2f})*
+                → `{row['mobilenet_pred']}`  
+                *(probabilité : {row['mobilenet_proba']:.2f})*  
+                **Résultat :** {'✅ Correct' if mn_correct else '❌ Incorrect'}
 
-                🟩 **DINOv2 (ViT-B/14)**  
-                → {row['dinov2_pred']}  
-                *(probabilité : {row['dinov2_proba']:.2f})*
+                🟩 **DINOv2**  
+                → `{row['dinov2_pred']}`  
+                *(probabilité : {row['dinov2_proba']:.2f})*  
+                **Résultat :** {'✅ Correct' if dn_correct else '❌ Incorrect'}
                 """
             )
+
         else:
             st.error("❌ Image introuvable")
             
